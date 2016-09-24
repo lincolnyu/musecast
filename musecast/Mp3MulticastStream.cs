@@ -110,6 +110,7 @@ namespace MuseCast
                 buf[j] = buffer[i];
             }
             _currentWriting++;
+            _length += count;
             _writtenEvent.Set();
         }
 
