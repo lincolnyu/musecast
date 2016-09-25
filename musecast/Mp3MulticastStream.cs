@@ -30,6 +30,7 @@ namespace MuseCast
         private int _numRunningThreads;
         private readonly AutoResetEvent _doneEvent = new AutoResetEvent(false);
         private readonly AutoResetEvent _writtenEvent = new AutoResetEvent(false);
+        private bool _terminating = false;
 
         public Mp3MulticastStream(IPAddress ipAddress, int port, int audioBufferFrameCount = DefaultAudioBufferFrameCount)
         {
@@ -46,21 +47,17 @@ namespace MuseCast
 
                 //start the thread which calls the method 'StartListen'
                 Fork();
-
-                while (true)
-                {
-                    if (!_doneEvent.WaitOne()) continue;
-                    if (_numRunningThreads <= 0)
-                    {
-                        break;
-                    }
-                }
             }
             catch (Exception e)
             {
                 Console.WriteLine("An exception occurred while listening: " + e);
                 throw e;
             }
+        }
+
+        ~Mp3MulticastStream()
+        {
+            TerminateAllThreadsIfNot();
         }
 
         public override bool CanRead => false;
@@ -99,6 +96,28 @@ namespace MuseCast
             throw new InvalidOperationException();
         }
 
+        public override void Close()
+        {
+            base.Close();
+
+            TerminateAllThreadsIfNot();
+        }
+
+
+        private void TerminateAllThreadsIfNot()
+        {
+            if (_listener != null)
+            {
+                _terminating = true;
+                _listener.Stop();
+                while (_numRunningThreads > 0)
+                {
+                    _doneEvent.WaitOne();
+                }
+                Console.WriteLine("All threads quited nicely.");
+            }
+        }
+
         public override void Write(byte[] buffer, int offset, int count)
         {
             _bufferLocks[_currentWriting].AcquireWriterLock(-1);
@@ -124,7 +143,7 @@ namespace MuseCast
                     // accepts a new connection
                     socket = _listener.AcceptSocket();
                     Console.WriteLine("Socket type " + socket.SocketType);
-                } while (!socket.Connected);
+                } while (!socket.Connected && !_terminating);
 
                 Fork();
 
@@ -158,7 +177,7 @@ namespace MuseCast
             SendHeader(HttpVersion, "audio/wav", -1, " 200 OK", socket);
 
             int currentReading = _currentWriting;
-            while (true)
+            while (!_terminating)
             {
                 if (currentReading == _currentWriting)
                 {
