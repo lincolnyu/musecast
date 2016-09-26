@@ -38,6 +38,10 @@ namespace MuseCast
             {
                 _audioBuffers = new byte[audioBufferFrameCount][];
                 _bufferLocks = new ReaderWriterLock[audioBufferFrameCount];
+                for (var i = 0; i < _bufferLocks.Length; i++)
+                {
+                    _bufferLocks[i] = new ReaderWriterLock();
+                }
 
                 //start listing on the given port
                 _listener = new TcpListener(ipAddress, port);
@@ -128,7 +132,9 @@ namespace MuseCast
             {
                 buf[j] = buffer[i];
             }
+            _bufferLocks[_currentWriting].ReleaseWriterLock();
             _currentWriting++;
+            if (_currentWriting >= _bufferLocks.Length) _currentWriting = 0;
             _length += count;
             _writtenEvent.Set();
         }
@@ -136,6 +142,7 @@ namespace MuseCast
         private void TryStartListen(object obj)
         {
             Socket socket = null;
+            var forked = false;
             try
             {
                 do
@@ -145,9 +152,11 @@ namespace MuseCast
                     Console.WriteLine("Socket type " + socket.SocketType);
                 } while (!socket.Connected && !_terminating);
 
-                Fork();
-
-                Stream(socket);
+                if (!_terminating)
+                {
+                    forked = Fork();
+                    Stream(socket);
+                }
             }
             catch (Exception e)
             {
@@ -156,14 +165,22 @@ namespace MuseCast
             finally
             {
                 socket?.Close();
-                Merge();
+                Console.WriteLine("Socket closed");
+                if (forked)
+                {
+                    Merge();
+                }
             }
         }
 
-        private void Fork()
+        private bool Fork()
         {
-            ThreadPool.QueueUserWorkItem(TryStartListen);
-            Interlocked.Increment(ref _numRunningThreads);
+            var succ = ThreadPool.QueueUserWorkItem(TryStartListen);
+            if (succ)
+            {
+                Interlocked.Increment(ref _numRunningThreads);
+            }
+            return succ;
         }
 
         private void Merge()
@@ -174,20 +191,46 @@ namespace MuseCast
 
         private void Stream(Socket socket)
         {
-            SendHeader(HttpVersion, "audio/wav", -1, " 200 OK", socket);
+            var bufRecv = new byte[1024];
+            socket.Receive(bufRecv, bufRecv.Length, 0);
 
-            int currentReading = _currentWriting;
-            while (!_terminating)
+            // converts byte to string
+            var bufferedStr = Encoding.UTF8.GetString(bufRecv);
+
+            // we only deal with GET type for the moment
+            if (bufferedStr.Substring(0, 3) != "GET")
+            {
+                Console.WriteLine("Only Get Method is supported..");
+                socket.Close();
+
+                return;
+            }
+
+            // Looks for HTTP request
+            var iStartPos = bufferedStr.IndexOf("HTTP", 1, StringComparison.Ordinal);
+
+            // Gets the HTTP text and version
+            var httpVersion = bufferedStr.Substring(iStartPos, 8);
+
+            Console.WriteLine($"{httpVersion}");
+
+            SendHeader(httpVersion, "audio/wav", -1, " 200 OK", socket);
+
+            int currentReading = 0;
+            var error = false;
+            while (!_terminating && !error)
             {
                 if (currentReading == _currentWriting)
                 {
                     _writtenEvent.WaitOne();
                 }
-                for (; currentReading != _currentWriting; currentReading++)
+                for (; currentReading != _currentWriting && !error; currentReading = (currentReading + 1) % _bufferLocks.Length)
                 {
                     _bufferLocks[currentReading].AcquireReaderLock(-1);
                     var buf = _audioBuffers[currentReading];
-                    SendToBrowser(buf, 0, buf.Length, socket);
+                    var res = SendToBrowser(buf, 0, buf.Length, socket);
+                    error = !res;
+                    _bufferLocks[currentReading].ReleaseReaderLock();
                 }
             }
         }
@@ -233,7 +276,7 @@ namespace MuseCast
         /// </summary>
         /// <param name="sData">The data to be sent to the browser(client)</param>
         /// <param name="socket">Socket reference</param>
-        public bool SendToBrowser(String sData, Socket socket)
+        public bool SendToBrowser(string sData, Socket socket)
         {
             return SendToBrowser(Encoding.UTF8.GetBytes(sData), socket);
         }
@@ -262,7 +305,7 @@ namespace MuseCast
                     }
                     else
                     {
-                        Console.Write("S");
+                        Console.Write($"S{offset},{length}");
                         //Console.WriteLine("No. of bytes sent {0}", numBytes);
                     }
                     return true;

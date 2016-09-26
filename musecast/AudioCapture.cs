@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace MuseCast
@@ -33,7 +34,7 @@ namespace MuseCast
 
         public delegate long SetFormatCallback(WAVEFORMATEX pwf);
         
-        public delegate long CopyDataCallback(byte[] data, uint numFramesAvailable, [MarshalAs(UnmanagedType.Bool)] ref bool done);
+        public delegate long CopyDataCallback(IntPtr pData, uint numFramesAvailable, [MarshalAs(UnmanagedType.Bool)] ref bool done);
 
         [DllImport("AudioCapture.dll")]
         public extern static int RecordAudioStream(SetFormatCallback setFormat, CopyDataCallback copyData);
