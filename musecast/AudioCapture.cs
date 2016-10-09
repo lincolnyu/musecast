@@ -32,9 +32,9 @@ namespace MuseCast
             }
         }
 
-        public delegate long SetFormatCallback(WAVEFORMATEX pwf);
+        public delegate int SetFormatCallback(WAVEFORMATEX pwf);
         
-        public delegate long CopyDataCallback(IntPtr pData, uint numFramesAvailable, [MarshalAs(UnmanagedType.Bool)] ref bool done);
+        public delegate int CopyDataCallback(IntPtr pData, uint numFramesAvailable, [MarshalAs(UnmanagedType.Bool)] ref bool done);
 
         [DllImport("AudioCapture.dll")]
         public extern static int RecordAudioStream(SetFormatCallback setFormat, CopyDataCallback copyData);
