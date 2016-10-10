@@ -40,7 +40,7 @@ namespace Yeti.MMedia.Mp3
   {
     private bool closed = false;
     private BE_CONFIG m_Mp3Config = null;
-    private uint m_hLameStream = 0;
+    private ulong m_hLameStream = 0;
     private uint m_InputSamples = 0;
     private uint m_OutBufferSize = 0;
     private byte[] m_InBuffer = null;

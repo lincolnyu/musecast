@@ -214,7 +214,7 @@ namespace MuseCast
 
             Console.WriteLine($"{httpVersion}");
 
-            SendHeader(httpVersion, "audio/mp3", -1, " 200 OK", socket);
+            SendHeader(httpVersion, "audio/mp3", 4096, " 200 OK", socket);
 
             int currentReading = 0;
             var error = false;
