@@ -50,7 +50,8 @@ namespace MuseCast
                 IPAddress ipAddress;
                 int port;
                 ParseIpAddress(address, out ipAddress, out port);
-                using (var stream = new Mp3MulticastStream(ipAddress, port))
+                var listener = new MuseTcpListener(ipAddress, port);
+                using (var stream = new Mp3MulticastStream(listener))
                 {
                     // how to use lame:
                     // http://stackoverflow.com/questions/23441298/how-can-i-save-a-music-network-stream-to-a-mp3-file
@@ -121,7 +122,8 @@ namespace MuseCast
                 int port;
                 int inbps = 16;
                 ParseIpAddress(address, out ipAddress, out port);
-                using (var stream = new Mp3MulticastStream(ipAddress, port))
+                var listener = new MuseTcpListener(ipAddress, port);
+                using (var stream = new Mp3MulticastStream(listener))
                 {
                     // how to use lame:
                     // http://stackoverflow.com/questions/23441298/how-can-i-save-a-music-network-stream-to-a-mp3-file

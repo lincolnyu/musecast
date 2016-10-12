@@ -53,9 +53,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AudioCapture.cs" />
+    <Compile Include="IListener.cs" />
+    <Compile Include="ISession.cs" />
     <Compile Include="Mp3MulticastStream.cs" />
+    <Compile Include="MuseTcpListener.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="MuseTcpSession.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
