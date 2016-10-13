@@ -1,13 +1,10 @@
 ﻿using System;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 
-namespace MuseCast
+namespace MuseCastLib
 {
-    public class Mp3MulticastStream : Stream
+    public class MulticastStream : Stream
     {
         #region Constants
 
@@ -32,7 +29,7 @@ namespace MuseCast
         private readonly AutoResetEvent _writtenEvent = new AutoResetEvent(false);
         private bool _terminating = false;
 
-        public Mp3MulticastStream(IListener listenr, int audioBufferFrameCount = DefaultAudioBufferFrameCount)
+        public MulticastStream(IListener listenr, int audioBufferFrameCount = DefaultAudioBufferFrameCount)
         {
             try
             {
@@ -58,7 +55,7 @@ namespace MuseCast
             }
         }
 
-        ~Mp3MulticastStream()
+        ~MulticastStream()
         {
             TerminateAllThreadsIfNot();
         }

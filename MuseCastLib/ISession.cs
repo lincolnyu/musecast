@@ -1,4 +1,4 @@
-﻿namespace MuseCast
+﻿namespace MuseCastLib
 {
     public interface ISession
     {

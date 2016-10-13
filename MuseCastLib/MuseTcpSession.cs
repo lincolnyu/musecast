@@ -2,18 +2,19 @@
 using System.Net.Sockets;
 using System.Text;
 
-namespace MuseCast
+namespace MuseCastLib
 {
     public class MuseTcpSession : ISession, IDisposable
     {
-        public const string MimeType = "audio/mp3";
-
-        public MuseTcpSession(Socket socket)
+        public MuseTcpSession(Socket socket, string mimeType)
         {
             Socket = socket;
+            MimeType = mimeType;
         }
 
         public Socket Socket { get; private set; }
+
+        public string MimeType { get; }
 
         public bool Started => Socket.Connected;
 
@@ -60,6 +61,7 @@ namespace MuseCast
         public void ReplyToInitRequest()
         {
             // TODO send the player to the browser
+            throw new NotImplementedException();
         }
 
         public void WaitForBufferRequest()
@@ -69,18 +71,18 @@ namespace MuseCast
 
         public bool SendData(byte[] buf, int offset, int length)
         {
-            SendHeader(MimeType, length, " 200 OK");
+            SendHeader(length, " 200 OK");
             SendToBrowser(buf, offset, length);
             return true;
         }
 
-        private void SendHeader(string mimeHeader, int totalBytes, string statusBytes)
+        private void SendHeader(int totalBytes, string statusBytes)
         {
             var sBuffer = "";
 
             sBuffer = sBuffer + ClientHttpVersion + statusBytes + "\r\n";
             sBuffer = sBuffer + "Server: cx1193719-b\r\n";
-            sBuffer = sBuffer + "Content-Type: " + mimeHeader + "\r\n";
+            sBuffer = sBuffer + "Content-Type: " + MimeType + "\r\n";
             sBuffer = sBuffer + "Accept-Ranges: bytes\r\n";
             if (totalBytes >= 0)
             {

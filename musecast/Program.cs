@@ -2,10 +2,10 @@
 using System.Net;
 using NAudio.Lame;
 using NAudio.Wave;
-using static MuseCast.AudioCapture;
 using System.Runtime.InteropServices;
-using System.Linq;
 using System.IO;
+using MuseCastLib;
+using static MuseCast.AudioCapture;
 
 namespace MuseCast
 {
@@ -13,45 +13,17 @@ namespace MuseCast
     {
         const int DefaultPort = 9000;
 
-        private static void ParseIpAddress(string address, out IPAddress ipAddress, out int port)
-        {
-            var s1 = address.Split(':');
-            string addressStr;
-            if (s1.Length == 2)
-            {
-                addressStr = s1[0];
-                var portStr = s1[1];
-                if (!int.TryParse(portStr, out port)) port = DefaultPort;
-            }
-            else if (s1.Length == 1)
-            {
-                addressStr = address;
-                port = DefaultPort;
-            }
-            else
-            {
-                throw new ArgumentException("Wrong IP address format");
-            }
-
-            var s2 = addressStr.Split('.');
-            if (s2.Length != 4)
-            {
-                throw new ArgumentException("Wrong IP address format");
-            }
-            var ipComponents = s2.Select(x => byte.Parse(x)).ToArray();
-            ipAddress = new IPAddress(ipComponents);
-        }
-
         private static void WriteMp3NAudio(string address)
         {
             LameMP3FileWriter writer = null;
             try
             {
                 IPAddress ipAddress;
-                int port;
-                ParseIpAddress(address, out ipAddress, out port);
-                var listener = new MuseTcpListener(ipAddress, port);
-                using (var stream = new Mp3MulticastStream(listener))
+                int? port;
+                NetHelper.ParseIpAddress(address, out ipAddress, out port);
+                if (port == null) port = DefaultPort;
+                var listener = new MuseTcpListener(ipAddress, port.Value);
+                using (var stream = new MulticastStream(listener))
                 {
                     // how to use lame:
                     // http://stackoverflow.com/questions/23441298/how-can-i-save-a-music-network-stream-to-a-mp3-file
@@ -119,11 +91,12 @@ namespace MuseCast
             try
             {
                 IPAddress ipAddress;
-                int port;
+                int? port;
                 int inbps = 16;
-                ParseIpAddress(address, out ipAddress, out port);
-                var listener = new MuseTcpListener(ipAddress, port);
-                using (var stream = new Mp3MulticastStream(listener))
+                NetHelper.ParseIpAddress(address, out ipAddress, out port);
+                if (port == null) port = DefaultPort;
+                var listener = new MuseTcpListener(ipAddress, port.Value);
+                using (var stream = new MulticastStream(listener))
                 {
                     // how to use lame:
                     // http://stackoverflow.com/questions/23441298/how-can-i-save-a-music-network-stream-to-a-mp3-file
