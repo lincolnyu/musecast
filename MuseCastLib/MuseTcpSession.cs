@@ -61,12 +61,38 @@ namespace MuseCastLib
         public void ReplyToInitRequest()
         {
             // TODO send the player to the browser
-            throw new NotImplementedException();
+
+            SendData(new byte[] { }, 0, 0);
         }
 
         public void WaitForBufferRequest()
         {
-            throw new NotImplementedException();
+            var bufRecv = new byte[1024];
+            while (true)
+            {
+                Socket.Receive(bufRecv, bufRecv.Length, 0);
+
+                // converts byte to string
+                var bufferedStr = Encoding.UTF8.GetString(bufRecv);
+
+                // we only deal with GET type for the moment
+                if (bufferedStr.Substring(0, 3) != "GET")
+                {
+                    Console.WriteLine("Only Get Method is supported..");
+                    return;
+                }
+
+                if (bufferedStr.Contains("NextBuffer"))
+                {
+                    break;
+                }
+            }
+        }
+
+        public bool SendInitDataIfAny()
+        {
+            // no init data
+            return true;
         }
 
         public bool SendData(byte[] buf, int offset, int length)

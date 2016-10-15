@@ -6,6 +6,12 @@ namespace MuseCastLib
 {
     public class MulticastStream : Stream
     {
+        #region Delegate
+
+        public delegate void InitDataEventHandler(out byte[] buffer);
+
+        #endregion
+
         #region Constants
 
         private const int DefaultAudioBufferFrameCount = 32;
@@ -75,6 +81,8 @@ namespace MuseCastLib
         {
             get; set;
         }
+
+        public event InitDataEventHandler InitData;
 
         public override void Flush()
         {
@@ -191,6 +199,8 @@ namespace MuseCastLib
                 return;
             }
 
+            var inited = false;
+
             session.ReplyToInitRequest();
 
             int currentReading = 0;
@@ -198,6 +208,21 @@ namespace MuseCastLib
             while (!_terminating && !error)
             {
                 session.WaitForBufferRequest();
+
+                if (inited)
+                {
+                    byte[] initData = null;
+                    InitData?.Invoke(out initData);
+                    if (initData != null)
+                    {
+                        error = !session.SendData(initData, 0, initData.Length);
+                        if (error)
+                        {
+                            break;
+                        }
+                    }
+                    inited = true;
+                }
 
                 while (currentReading == _currentWriting)
                 {

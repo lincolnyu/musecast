@@ -14,11 +14,12 @@ namespace DashCast
         {
             public long Start { get; set; }
             public long End { get; set; }
-            public int Length => (int)(Start - End + 1);
+            public int Length => (int)(End - Start + 1);
         }
 
-        private static void GetDashInfo(string mpd, out string mfile, out List<Segment> segments)
+        private static void GetDashInfo(string mpd, out string mfile, out Segment initSeg, out List<Segment> segments)
         {
+            initSeg = null;
             segments = new List<Segment>();
             mfile = null;
             using (var xml = XmlReader.Create(mpd))
@@ -27,36 +28,49 @@ namespace DashCast
                 {
                     if (xml.NodeType == XmlNodeType.Element)
                     {
-                        if (xml.Value == "BaseURL")
+                        if (xml.Name == "BaseURL")
                         {
-                            xml.MoveToContent();
-                            mfile = xml.Value;
+                            mfile = xml.ReadElementContentAsString();
                         }
-                        else if (xml.Value == "SegmentURL")
+                        else if (xml.Name == "Initialization")
+                        {
+                            var range = xml.GetAttribute("range");
+                            initSeg = LoadSegmentFromRangeString(range);
+                        }
+                        else if (xml.Name == "SegmentURL")
                         {
                             var range = xml.GetAttribute("mediaRange");
-                            var s = range.Split('-');
-                            var starts = s[0];
-                            var ends = s[1];
-                            var start = long.Parse(starts);
-                            var end = long.Parse(ends);
-                            segments.Add(new Segment { Start = start, End = end });
+                            var seg = LoadSegmentFromRangeString(range);
+                            segments.Add(seg);
                         }
                     }
                 }
             }
         }
 
-        private static void FeedDash(IListener listener, string mfilename, List<Segment> segments)
+        private static Segment LoadSegmentFromRangeString(string range)
+        {
+            var s = range.Split('-');
+            var starts = s[0];
+            var ends = s[1];
+            var start = long.Parse(starts);
+            var end = long.Parse(ends);
+            return new Segment { Start = start, End = end };
+        }
+
+        private static void FeedDash(IListener listener, string mfilename, Segment initSeg, List<Segment> segments)
         {
             using (var mfile = new FileStream(mfilename, FileMode.Open))
                 using (var s = new MulticastStream(listener))
             {
-                foreach (var segment in segments)
+                while (true) // endless loop
                 {
-                    var segbuf = new byte[segment.Length];
-                    var read = mfile.Read(segbuf, 0, segment.Length);
-                    s.Write(segbuf, 0, read);
+                    foreach (var segment in segments)
+                    {
+                        var segbuf = new byte[segment.Length];
+                        var read = mfile.Read(segbuf, 0, segment.Length);
+                        s.Write(segbuf, 0, read);
+                    }
                 }
             }
         }
@@ -67,15 +81,16 @@ namespace DashCast
             var ip = args[1];
 
             string mfile;
+            Segment initSeg;
             List<Segment> segments;
-            GetDashInfo(mpd, out mfile, out segments);
+            GetDashInfo(mpd, out mfile, out initSeg, out segments);
 
             IPAddress ipAddress;
             int? port;
             NetHelper.ParseIpAddress(ip, out ipAddress, out port);
             if (port == null) port = DefaultPort;
             var listener = new MuseTcpListener(ipAddress, port.Value, "video/mp4");
-            FeedDash(listener, mfile, segments);
+            FeedDash(listener, mfile, initSeg, segments);
         }
     }
 }
