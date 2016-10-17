@@ -82,6 +82,8 @@ namespace MuseCastLib
             get; set;
         }
 
+        public bool InitDataCombinedWithFirstChunk { get; set; } = false;
+
         public event InitDataEventHandler InitData;
 
         public override void Flush()
@@ -110,7 +112,6 @@ namespace MuseCastLib
 
             TerminateAllThreadsIfNot();
         }
-
 
         private void TerminateAllThreadsIfNot()
         {
@@ -192,6 +193,34 @@ namespace MuseCastLib
             _doneEvent.Set();
         }
 
+        /// <summary>
+        ///  The entire broadcast streaming process for the session
+        /// </summary>
+        /// <param name="session">The session</param>
+        /// <remarks>
+        ///    Client         Server (this)
+        ///   
+        ///        InitRequet
+        ///      --------------&gt;
+        ///      
+        ///        ReplyToInitReq
+        ///     &lt;--------------
+        ///     
+        ///        BufferRequest
+        ///      --------------&gt;
+        ///      
+        ///        InitData / InitData+ContentData
+        ///     &lt;--------------
+        ///     
+        ///        BufferRequest
+        ///      --------------&gt;
+        ///      
+        ///        ContentData
+        ///     &lt;--------------
+        ///     
+        ///        ...
+        /// 
+        /// </remarks>
         private void Stream(ISession session)
         {
             if (!session.WaitForInitRequest())
@@ -207,21 +236,24 @@ namespace MuseCastLib
             var error = false;
             while (!_terminating && !error)
             {
+                byte[] initData = null;
+
                 session.WaitForBufferRequest();
 
-                if (inited)
+                if (!inited && InitData != null)
                 {
-                    byte[] initData = null;
-                    InitData?.Invoke(out initData);
-                    if (initData != null)
-                    {
-                        error = !session.SendData(initData, 0, initData.Length);
-                        if (error)
-                        {
-                            break;
-                        }
-                    }
+                    InitData(out initData);
                     inited = true;
+                }
+
+                if (!InitDataCombinedWithFirstChunk && initData != null)
+                {
+                    error = !session.SendData(initData, 0, initData.Length);
+                    if (error)
+                    {
+                        break;
+                    }
+                    continue;
                 }
 
                 while (currentReading == _currentWriting)
@@ -230,10 +262,29 @@ namespace MuseCastLib
                 }
 
                 _bufferLocks[currentReading].AcquireReaderLock(-1);
-                var buf = _audioBuffers[currentReading];
+                byte[] buf;
+                if (InitDataCombinedWithFirstChunk && initData != null)
+                {
+                    buf = new byte[initData.Length + _audioBuffers[currentReading].Length];
+                    BufCopy(buf, initData, 0);
+                    BufCopy(buf, _audioBuffers[currentReading], initData.Length);
+                }
+                else
+                {
+                    buf = _audioBuffers[currentReading];
+                }
                 error = !session.SendData(buf, 0, buf.Length);
                 _bufferLocks[currentReading].ReleaseReaderLock();
                 currentReading = (currentReading + 1) % _bufferLocks.Length;
+            }
+        }
+
+        private void BufCopy(byte[] dst, byte[] src, int offsetDst)
+        {
+            var pdst = offsetDst;
+            for (var i = 0; i < src.Length; i++)
+            {
+                dst[pdst++] = src[i];
             }
         }
     }

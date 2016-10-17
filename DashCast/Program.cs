@@ -63,6 +63,13 @@ namespace DashCast
             using (var mfile = new FileStream(mfilename, FileMode.Open))
                 using (var s = new MulticastStream(listener))
             {
+                s.InitData += (out byte[] buffer) =>
+                {
+                    var segbuf = new byte[initSeg.Length];
+                    mfile.Seek(0, SeekOrigin.Begin);
+                    buffer = new byte[initSeg.Length];
+                    var read = mfile.Read(segbuf, 0, initSeg.Length);
+                };
                 while (true) // endless loop
                 {
                     foreach (var segment in segments)

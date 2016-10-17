@@ -10,6 +10,5 @@
         void ReplyToInitRequest();
         void WaitForBufferRequest();
         bool SendData(byte[] buf, int offset, int length);
-        bool SendInitDataIfAny();
     }
 }

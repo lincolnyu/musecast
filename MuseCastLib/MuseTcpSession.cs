@@ -89,12 +89,6 @@ namespace MuseCastLib
             }
         }
 
-        public bool SendInitDataIfAny()
-        {
-            // no init data
-            return true;
-        }
-
         public bool SendData(byte[] buf, int offset, int length)
         {
             SendHeader(length, " 200 OK");
