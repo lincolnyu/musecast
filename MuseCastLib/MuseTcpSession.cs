@@ -62,7 +62,9 @@ namespace MuseCastLib
         {
             // TODO send the player to the browser
 
-            SendData(new byte[] { }, 0, 0);
+            SendToBrowser("Ack");
+
+            //SendData(new byte[] { }, 0, 0);
         }
 
         public void WaitForBufferRequest()

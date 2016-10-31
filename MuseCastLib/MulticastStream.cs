@@ -35,7 +35,7 @@ namespace MuseCastLib
         private readonly AutoResetEvent _writtenEvent = new AutoResetEvent(false);
         private bool _terminating = false;
 
-        public MulticastStream(IListener listenr, int audioBufferFrameCount = DefaultAudioBufferFrameCount)
+        public MulticastStream(IListener listener, int audioBufferFrameCount = DefaultAudioBufferFrameCount)
         {
             try
             {
@@ -47,7 +47,7 @@ namespace MuseCastLib
                 }
 
                 //start listing on the given port
-                _listener = listenr;
+                _listener = listener;
                 _listener.Start();
                 Console.WriteLine("Mp3MultiCastStream listening... Press ^C to stop...");
 
