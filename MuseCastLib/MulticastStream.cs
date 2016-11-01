@@ -223,15 +223,12 @@ namespace MuseCastLib
         /// </remarks>
         private void Stream(ISession session)
         {
-            if (!session.WaitForInitRequest())
+            if (!session.Handshake())
             {
                 return;
             }
 
             var inited = false;
-
-            session.ReplyToInitRequest();
-
             int currentReading = 0;
             var error = false;
             while (!_terminating && !error)

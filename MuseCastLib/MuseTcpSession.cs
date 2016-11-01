@@ -6,6 +6,8 @@ namespace MuseCastLib
 {
     public class MuseTcpSession : ISession, IDisposable
     {
+        public const string SuccessStatusMessage = " 200 OK";
+
         public MuseTcpSession(Socket socket, string mimeType)
         {
             Socket = socket;
@@ -20,51 +22,23 @@ namespace MuseCastLib
 
         public string ClientHttpVersion { get; private set; }
 
-        public void Close()
-        {
-            if (Socket != null)
-            {
-                Socket.Close();
-                Socket = null;
-            }
-        }
+        #region IDisposable members
 
         public void Dispose() => Close();
 
-        public bool WaitForInitRequest()
+        #endregion
+
+        #region ISession members
+
+        public bool Handshake()
         {
-            var bufRecv = new byte[1024];
-            Socket.Receive(bufRecv, bufRecv.Length, 0);
-
-            // converts byte to string
-            var bufferedStr = Encoding.UTF8.GetString(bufRecv);
-
-            // we only deal with GET type for the moment
-            if (bufferedStr.Substring(0, 3) != "GET")
+            if (! WaitForInitRequest())
             {
-                Console.WriteLine("Only Get Method is supported..");
-                Close();
                 return false;
             }
 
-            // Looks for HTTP request
-            var iStartPos = bufferedStr.IndexOf("HTTP", 1, StringComparison.Ordinal);
-
-            // Gets the HTTP text and version
-            ClientHttpVersion = bufferedStr.Substring(iStartPos, 8);
-
-            Console.WriteLine($"{ClientHttpVersion}");
-
+            ReplyToInitRequest();
             return true;
-        }
-
-        public void ReplyToInitRequest()
-        {
-            // TODO send the player to the browser
-
-            SendToBrowser("Ack");
-
-            //SendData(new byte[] { }, 0, 0);
         }
 
         public void WaitForBufferRequest()
@@ -93,9 +67,64 @@ namespace MuseCastLib
 
         public bool SendData(byte[] buf, int offset, int length)
         {
-            SendHeader(length, " 200 OK");
+            SendHeader(length, SuccessStatusMessage);
             SendToBrowser(buf, offset, length);
             return true;
+        }
+
+        #endregion
+
+        public void Close()
+        {
+            if (Socket != null)
+            {
+                Socket.Close();
+                Socket = null;
+            }
+        }
+
+        private bool WaitForInitRequest()
+        {
+            var bufRecv = new byte[1024];
+            Socket.Receive(bufRecv, bufRecv.Length, 0);
+
+            // converts byte to string
+            var bufferedStr = Encoding.UTF8.GetString(bufRecv);
+
+            // we only deal with GET type for the moment
+            if (bufferedStr.Substring(0, 3) != "GET")
+            {
+                Console.WriteLine("Only Get Method is supported..");
+                Close();
+                return false;
+            }
+
+            // Looks for HTTP request
+            var iStartPos = bufferedStr.IndexOf("HTTP", 1, StringComparison.Ordinal);
+
+            // Gets the HTTP text and version
+            ClientHttpVersion = bufferedStr.Substring(iStartPos, 8);
+
+            Console.WriteLine($"{ClientHttpVersion}");
+
+            return true;
+        }
+
+        private void ReplyToInitRequest()
+        {
+            // TODO send the player to the browser
+            Console.WriteLine("send acknowledgement");
+            SendString("Ack");
+            Console.WriteLine("send acknowledgement done");
+
+            //SendData(new byte[] { }, 0, 0);
+        }
+
+        private void SendString(string s)
+        {
+            var b = Encoding.UTF8.GetBytes(s);
+            SendHeader(b.Length, SuccessStatusMessage);
+            SendToBrowser(b);
         }
 
         private void SendHeader(int totalBytes, string statusBytes)

@@ -6,8 +6,7 @@
 
         void Close();
 
-        bool WaitForInitRequest();
-        void ReplyToInitRequest();
+        bool Handshake();
         void WaitForBufferRequest();
         bool SendData(byte[] buf, int offset, int length);
     }
