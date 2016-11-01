@@ -55,13 +55,10 @@ namespace MuseCastLib
                 if (bufferedStr.Substring(0, 3) != "GET")
                 {
                     Console.WriteLine("Only Get Method is supported..");
-                    return;
+                    continue;
                 }
 
-                if (bufferedStr.Contains("NextBuffer"))
-                {
-                    break;
-                }
+                break;
             }
         }
 
