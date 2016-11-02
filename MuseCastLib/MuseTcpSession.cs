@@ -4,7 +4,7 @@ using System.Text;
 
 namespace MuseCastLib
 {
-    public class MuseTcpSession : ISession, IDisposable
+    public class MuseTcpSession : ISession
     {
         public const string SuccessStatusMessage = " 200 OK";
 
@@ -20,15 +20,15 @@ namespace MuseCastLib
 
         public bool Started => Socket.Connected;
 
-        public string ClientHttpVersion { get; private set; }
+        public string ClientHttpVersion { get; set; }
+
+        #region ISession members
 
         #region IDisposable members
 
         public void Dispose() => Close();
 
         #endregion
-
-        #region ISession members
 
         public bool Handshake()
         {
@@ -117,7 +117,7 @@ namespace MuseCastLib
             //SendData(new byte[] { }, 0, 0);
         }
 
-        private void SendString(string s)
+        public void SendString(string s)
         {
             var b = Encoding.UTF8.GetBytes(s);
             SendHeader(b.Length, SuccessStatusMessage);

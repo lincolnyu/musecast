@@ -1,6 +1,8 @@
-﻿namespace MuseCastLib
+﻿using System;
+
+namespace MuseCastLib
 {
-    public interface ISession
+    public interface ISession : IDisposable
     {
         bool Started { get; }
 

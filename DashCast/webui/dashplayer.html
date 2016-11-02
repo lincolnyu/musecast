@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<!-- Media streaming example
+  Reads an .mpd file created using mp4box and plays the file
+-->     
+<head>
+  <meta charset="utf-8" />
+  <title>Media streaming example</title>
+  <style>
+    /* CSS code to format the parameter list and elements */
+    body {
+      font-family:'Segoe UI';
+      background-color:#f0f0f0;
+    }
+    /* Set up parameter and video display*/
+    #myDiv {
+      /*display: block;*/
+      width: 600px;
+      height: 400px;
+      overflow: auto;      
+    }
+    /* Zoom or shrink video based on the native size of the video*/
+    video {
+      width:640px;
+      height:480px;
+      border:1px black solid;
+    }
+    #description {
+      display: block;
+      width:640px;      
+    }
+
+    #grid {
+      display: -ms-grid;
+      -ms-grid-columns: 35% 65%;
+      -ms-grid-rows: 1fr;
+    }    
+
+    #col1 {
+      -ms-grid-row: 1;
+      -ms-grid-column: 1;
+      padding:20px;
+    }
+    #col2 {
+      -ms-grid-row: 1;
+      -ms-grid-column: 2;
+    }
+    #curInfo{
+      display:none;
+    }
+  </style>
+</head>
+
+<body>     
+  <h1>Simple MPEG-DASH Streaming player</h1>
+
+  <div id="grid">
+    <div id="col1">
+    <label>Enter URL: 
+        <input type="text" id="mediaUrl" value="http://192.168.1.2/" /> <!-- http://192.168.1.2/-->
+	  </label> <button id="load">Play</button><br />
+           
+      <!-- Some areas to display info and content -->
+      <div id="mydiv">
+        <span id="myspan"><br />This demo requires Internet Explorer 11</span>
+      </div>
+      <div id="videoInfo"></div>
+      <div>&nbsp;</div>
+      <div id="curInfo"> 
+        <h3>Current values:</h3>
+        <ul>
+          <li>Index: <span id="curIndex"></span> of <span id="numIndexes"></span></li>
+          <li>Segment length: <span id="segLength"></span></li>
+          <li>Video time: <span id="curTime"></span></li>
+        </ul>
+      </div> 
+    </div>
+    <div id="col2">
+      <!-- Video element -->
+      <video id="myVideo" autoplay="autoplay" >No video available</video>
+            <div id="description">
+              This example uses HTML5 video, Media Source Extensions, and MPEG-DASH files.<br /> 
+              For more info see <a href="http://go.microsoft.com/fwlink/p/?LinkID=390962">Building a simple MPEG-DASH streaming player</a>. 
+            </div>
+    </div>
+  </div>
+
+  <!-- script section -->
+  <script>
+    'use strict'
+    // Global Parameters from .mpd file
+    var file;  // MP4 file
+    var type;  // Type of file
+    var codecs; //  Codecs allowed
+    var width;  //  Native width and height
+    var height;
+
+    // Elements
+    var videoElement = document.getElementById('myVideo');
+    var playButton = document.getElementById("load");
+    videoElement.poster = "poster.png";
+
+    // Description of initialization segment, and approx segment lengths 
+    var initialization;
+    var segDuration;
+    var vidDuration;
+
+    // Video parameters
+    var bandwidth; // bitrate of video
+
+    // Parameters to drive segment loop
+    var index = 0; // Segment to get
+    var segments;
+
+    // Source and buffers
+    var mediaSource;
+    var videoSource;
+
+    // Parameters to drive fetch loop
+    var segCheck;
+    var lastTime = 0;
+    var bufferUpdated = false;
+
+    // Flags to keep things going 
+    var lastMediaUrl = "";
+    var vTime = document.getElementById("curTime");
+    var requestId = 0;
+	
+	var inited;
+	
+	function createCORSRequest(method, url) {
+	  var xhr = new XMLHttpRequest();
+	  if ("withCredentials" in xhr) {
+
+		// Check if the XMLHttpRequest object has a "withCredentials" property.
+		// "withCredentials" only exists on XMLHTTPRequest2 objects.
+		xhr.open(method, url, true);
+
+	  } else if (typeof XDomainRequest != "undefined") {
+
+		// Otherwise, check if XDomainRequest.
+		// XDomainRequest only exists in IE, and is IE's way of making CORS requests.
+		xhr = new XDomainRequest();
+		xhr.open(method, url);
+	  } else {
+		// Otherwise, CORS is not supported by the browser.
+		xhr = null;
+
+	  }
+	  return xhr;
+	}
+
+
+    // Click event handler for load button    
+    playButton.addEventListener("click", function () {
+      //  If video is paused then check for file change
+      if (videoElement.paused == true) {
+        // Retrieve mpd file, and set up video
+        var curMediaUrl = document.getElementById("mediaUrl").value;
+        //  If current mpd file is different then last mpd file, load it.
+        if (curMediaUrl != lastMediaUrl) {
+          //  Cancel display of current video position
+          window.cancelAnimationFrame(requestId);
+          lastMediaUrl = curMediaUrl;
+          streamMuseCast(curMediaUrl);
+        } else {
+          //  No change, just play
+          videoElement.play();
+        }
+      } else {
+        //  Video was playing, now pause it
+        videoElement.pause();
+      }
+    }, false);
+
+    // Do a little trickery, start video when you click the video element
+    videoElement.addEventListener("click", function () {
+      playButton.click();
+    }, false);
+
+    // Event handler for the video element errors
+    document.getElementById("myVideo").addEventListener("error", function (e) {
+      log("video error: " + e.message);
+    }, false);
+
+	// This is the entry point for the fucking js to get some media
+	// js as a retard does deal with url a lot, here there are superfluously many urls
+	// not because there are many, but because js has no fucking idea
+	// the url used to be the mtd or whatever has the xml, now it's the ip of the superior 
+	// c# broadcasting server it has to fit to
+	function streamMuseCast(url) {
+		inited = false;
+		if (url != "") {
+		//	var xhr = new XMLHttpRequest();
+			//xhr.open('GET', url, true);
+			var xhr = createCORSRequest('GET', url);
+			if (!xhr) {
+			  throw new Error ('CORS not supported');
+			}
+			xhr.responseType = 'text';
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState == xhr.DONE) { // wait for reply
+				    // Expect the server to reply the stream profile (dimensions, bandwidth etc.) by xml
+					//getProfile(xhr.response);
+					hardcodedProfile();
+					setupVideo(url);
+					clearVars();
+				}
+		    }
+			xhr.send(null);
+		}
+	}
+	
+	function hardcodedProfile() {
+		type = "video/mp4";
+		codecs = "avc3.640029,mp4a.40.2"; // it's funny that idiot js wants to know about codecs
+		width="720"; height="404";
+		bandwidth="800187";
+	}
+	
+	function getProfile(response) {
+	   var parser = new DOMParser(); //  Create a parser object 
+		// Create an xml document from the .mpd file for searching
+		var xmlData = parser.parseFromString(tempoutput, "text/xml", 0);		
+     	try {
+		var rep = data.querySelectorAll("Representation");
+		type = rep[0].getAttribute("mimeType");
+		codecs = rep[0].getAttribute("codecs");
+		width = rep[0].getAttribute("width");
+		height = rep[0].getAttribute("height");
+		bandwidth = rep[0].getAttribute("bandwidth");
+	  } catch (er) {
+		log(er);
+		return;
+	  }
+ 	}
+	
+	function setupVideo(url) {
+	  clearLog(); // Clear console log
+
+      //  Create the media source 
+      if (window.MediaSource) {
+        mediaSource = new window.MediaSource();
+       } else {
+        log("mediasource or syntax not supported");
+        return;
+      }
+	  
+	 var srcUrl = URL.createObjectURL(mediaSource);
+      videoElement.pause();
+      videoElement.src = srcUrl;
+      videoElement.width = width;
+      videoElement.height = height;
+		// Wait for event that tells us that our media source object is 
+		//   ready for a buffer to be added.
+		
+		mediaSource.addEventListener('sourceopen', function (e) {
+		 try {
+			videoSource = mediaSource.addSourceBuffer('video/mp4');
+			startStreaming(url);
+        } catch (e) {
+          log('Exception calling addSourceBuffer for video', e);
+          return;
+        }
+	   }, false);
+		
+      // Handler to switch button text to Play
+	  videoElement.addEventListener("pause", function () {
+		playButton.innerText = "Play";
+	  }, false);
+
+	  // Handler to switch button text to pause
+	  videoElement.addEventListener("playing", function () {
+		playButton.innerText = "Pause";
+	  }, false);
+	  // Remove the handler for the timeupdate event
+	  videoElement.addEventListener("ended", function () {
+		videoElement.removeEventListener("timeupdate", checkTime);
+	  }, false);
+    }
+	
+	function startStreaming(url) {
+		playSegment(url);
+
+		requestId = window.requestAnimationFrame(render);
+
+		//  Continue in a loop where approximately every x seconds reload the buffer
+		videoElement.addEventListener("timeupdate", function() { fileChecks(url); }, false);
+	}
+	
+	var i = 1;
+	function playSegment(url) {
+	   var newUrl = url  + i;
+	   var xhr = createCORSRequest('GET', newUrl);
+	   i++;
+	   // TODO some http shit agreed to send
+	   xhr.responseType = 'arraybuffer';
+	   try {
+	      xhr.addEventListener("readystatechange", function () {
+		    if (xhr.readyState == xhr.DONE) {
+				// TODO check the fucking js doc to find out the way to get the length of the buffer
+				segCheck = (timeToDownload(xhr.response.byteLength) * .8).toFixed(3); // Use .8 as fudge factor
+				// some js shit 
+				try {
+					videoSource.appendBuffer(new Uint8Array(xhr.response));
+					if (i == 2){
+						videoSource.addEventListener("update",updateFunct, false);
+					}
+				} catch (e) {
+					log('Exception while appending initialization content', e);
+				}
+			}
+		  }, false);
+	      xhr.send(null); // buffer request
+	   } catch (e) {
+	      log(e);
+          return // No value for range
+	   }
+	}
+	 
+	function updateFunct() {
+      //  This is a one shot function, when init segment finishes loading, 
+      //    update the buffer flag, call getStarted, and then remove this event.
+      bufferUpdated = true;
+      //  Now that video has started, remove the event listener
+      videoSource.removeEventListener("update", updateFunct);
+    }
+	
+	function timeToDownload(size) {
+		return size*8/bandwidth;
+	}
+	
+	function fileChecks(url) {
+      // If we're ok on the buffer, then continue
+      if (bufferUpdated == true) {
+         if ((videoElement.currentTime - lastTime) >= segCheck) {
+			playSegment(url);
+            lastTime = videoElement.currentTime;
+		  }
+		  // TODO when to end..
+      }
+    }
+	
+	function render() {
+      // Display current video position
+      vTime.innerText = formatTime(videoElement.currentTime);
+      // Recall this function when available 
+      requestId = window.requestAnimationFrame(render);
+    }
+	 //  Logs messages to the console
+    function log(s) {
+      //  send to console
+      //    you can also substitute UI here
+      console.log(s);
+    };
+	
+	//  Clears the log
+    function clearLog() {
+      console.clear();
+    }
+ 
+	
+	function clearVars() {
+      index = 0;
+      lastTime = 0;
+    }
+	  </script>
+</body>
+</html>
+
