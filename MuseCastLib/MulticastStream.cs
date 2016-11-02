@@ -8,7 +8,7 @@ namespace MuseCastLib
     {
         #region Delegate
 
-        public delegate void InitDataEventHandler(out byte[] buffer);
+        public delegate void InitDataEventHandler(out byte[] buffer, out int start, out int len);
 
         #endregion
 
@@ -234,18 +234,19 @@ namespace MuseCastLib
             while (!_terminating && !error)
             {
                 byte[] initData = null;
+                int initDataStart = 0, initDataLen = 0;
 
                 session.WaitForBufferRequest();
 
                 if (!inited && InitData != null)
                 {
-                    InitData(out initData);
+                    InitData(out initData, out initDataStart, out initDataLen);
                     inited = true;
                 }
 
                 if (!InitDataCombinedWithFirstChunk && initData != null)
                 {
-                    error = !session.SendData(initData, 0, initData.Length);
+                    error = !session.SendData(initData, initDataStart, initDataLen);
                     if (error)
                     {
                         break;
@@ -262,9 +263,9 @@ namespace MuseCastLib
                 byte[] buf;
                 if (InitDataCombinedWithFirstChunk && initData != null)
                 {
-                    buf = new byte[initData.Length + _audioBuffers[currentReading].Length];
-                    BufCopy(buf, initData, 0);
-                    BufCopy(buf, _audioBuffers[currentReading], initData.Length);
+                    buf = new byte[initDataLen + _audioBuffers[currentReading].Length];
+                    BufCopy(buf, initData, 0, initDataStart, initDataLen);
+                    BufCopy(buf, _audioBuffers[currentReading], initDataLen);
                 }
                 else
                 {
@@ -276,10 +277,12 @@ namespace MuseCastLib
             }
         }
 
-        private void BufCopy(byte[] dst, byte[] src, int offsetDst)
+        private void BufCopy(byte[] dst, byte[] src, int offsetDst = 0) => BufCopy(dst, src, offsetDst, 0, src.Length);
+
+        private void BufCopy(byte[] dst, byte[] src, int offsetDst, int offsetSrc, int len)
         {
             var pdst = offsetDst;
-            for (var i = 0; i < src.Length; i++)
+            for (var i = offsetSrc; i < offsetSrc + len; i++)
             {
                 dst[pdst++] = src[i];
             }
