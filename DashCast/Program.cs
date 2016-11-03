@@ -97,10 +97,12 @@ namespace DashCast
                     mfile.Seek(0, SeekOrigin.Begin);
                     var iniSegBuf = new byte[initSeg.Length];
                     var iniRead = mfile.Read(iniSegBuf, 0, initSeg.Length);
+
                     var ftt = true;
 
                     foreach (var seg in segments)
                     {
+                        mfile.Seek(seg.Start, SeekOrigin.Begin);
                         if (ftt)
                         {
                             var segbuf = new byte[iniRead + seg.Length];
