@@ -4,33 +4,15 @@ using System.Text;
 
 namespace MuseCastLib
 {
-    public class MuseTcpSession : ISession
+    public class MuseTcpSession : MuseBaseSession
     {
-        public const string SuccessStatusMessage = " 200 OK";
-
-        public MuseTcpSession(Socket socket, string mimeType)
+        public MuseTcpSession(Socket socket, string mimeType) : base(socket, mimeType)
         {
-            Socket = socket;
-            MimeType = mimeType;
         }
-
-        public Socket Socket { get; private set; }
-
-        public string MimeType { get; }
-
-        public bool Started => Socket.Connected;
-
-        public string ClientHttpVersion { get; set; }
 
         #region ISession members
 
-        #region IDisposable members
-
-        public void Dispose() => Close();
-
-        #endregion
-
-        public bool Handshake()
+        public override bool Handshake()
         {
             if (! WaitForInitRequest())
             {
@@ -41,7 +23,7 @@ namespace MuseCastLib
             return true;
         }
 
-        public void WaitForBufferRequest()
+        public override void WaitForBufferRequest()
         {
             var bufRecv = new byte[1024];
             while (true)
@@ -62,7 +44,7 @@ namespace MuseCastLib
             }
         }
 
-        public bool SendData(byte[] buf, int offset, int length)
+        public override bool SendData(byte[] buf, int offset, int length)
         {
             SendHeader(length, SuccessStatusMessage);
             SendToBrowser(buf, offset, length);
@@ -70,15 +52,6 @@ namespace MuseCastLib
         }
 
         #endregion
-
-        public void Close()
-        {
-            if (Socket != null)
-            {
-                Socket.Close();
-                Socket = null;
-            }
-        }
 
         private bool WaitForInitRequest()
         {
@@ -115,82 +88,6 @@ namespace MuseCastLib
             Console.WriteLine("send acknowledgement done");
 
             //SendData(new byte[] { }, 0, 0);
-        }
-
-        public void SendString(string s)
-        {
-            var b = Encoding.UTF8.GetBytes(s);
-            SendHeader(b.Length, SuccessStatusMessage);
-            SendToBrowser(b);
-        }
-
-        private void SendHeader(int totalBytes, string statusBytes)
-        {
-            var sBuffer = "";
-
-            sBuffer = sBuffer + ClientHttpVersion + statusBytes + "\r\n";
-            sBuffer = sBuffer + "Server: cx1193719-b\r\n";
-            sBuffer = sBuffer + "Content-Type: " + MimeType + "\r\n";
-            sBuffer = sBuffer + "Accept-Ranges: bytes\r\n";
-            if (totalBytes >= 0)
-            {
-                sBuffer = sBuffer + "Content-Length: " + totalBytes + "\r\n\r\n";
-            }
-
-            Console.WriteLine("=== header ===");
-            Console.WriteLine(sBuffer);
-            Console.WriteLine("==============");
-
-            SendToBrowser(sBuffer);
-        }
-
-        /// <summary>
-        ///  Overloaded Function, takes string, convert to bytes and calls 
-        ///  overloaded sendToBrowserFunction.
-        /// </summary>
-        /// <param name="sData">The data to be sent to the browser(client)</param>
-        /// <param name="socket">Socket reference</param>
-        public bool SendToBrowser(string sData)
-        {
-            return SendToBrowser(Encoding.UTF8.GetBytes(sData));
-        }
-
-        public bool SendToBrowser(byte[] buffer)
-        {
-            return SendToBrowser(buffer, 0, buffer.Length);
-        }
-
-        /// <summary>
-        ///  Sends data to the browser (client)
-        /// </summary>
-        /// <param name="buffer">Byte Array</param>
-        /// <param name="offset">The position in the data buffer at which to begin sending data</param>
-        /// <param name="length">The number of bytes to send</param>
-        public bool SendToBrowser(byte[] buffer, int offset, int length)
-        {
-            try
-            {
-                if (Socket.Connected)
-                {
-                    if ((Socket.Send(buffer, offset, length, 0)) == -1)
-                    {
-                        Console.WriteLine("Socket Error cannot Send Packet");
-                    }
-                    else
-                    {
-                        Console.Write($"S{offset},{length}");
-                        //Console.WriteLine("No. of bytes sent {0}", numBytes);
-                    }
-                    return true;
-                }
-                Console.WriteLine("Connection Dropped....");
-                return false;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Error Occurred: {0} ", e);
-            }
-            return false;
         }
     }
 }

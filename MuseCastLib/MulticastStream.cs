@@ -15,8 +15,7 @@ namespace MuseCastLib
         #region Constants
 
         private const int DefaultAudioBufferFrameCount = 32;
-        private const string HttpVersion = "1.1";
-        
+      
         #endregion
 
         #region Backing fields

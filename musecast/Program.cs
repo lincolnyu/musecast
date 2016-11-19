@@ -95,7 +95,7 @@ namespace MuseCast
                 int inbps = 16;
                 NetHelper.ParseIpAddress(address, out ipAddress, out port);
                 if (port == null) port = DefaultPort;
-                var listener = new MuseTcpListener(ipAddress, port.Value);
+                var listener = new MuseMp3TcpListener(ipAddress, port.Value);
                 using (var stream = new MulticastStream(listener))
                 {
                     // how to use lame:

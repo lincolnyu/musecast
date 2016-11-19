@@ -43,6 +43,9 @@
     <Compile Include="IListener.cs" />
     <Compile Include="ISession.cs" />
     <Compile Include="MulticastStream.cs" />
+    <Compile Include="MuseMp3TcpSession.cs" />
+    <Compile Include="MuseMp3TcpListener.cs" />
+    <Compile Include="MuseBaseSession.cs" />
     <Compile Include="MuseTcpListener.cs" />
     <Compile Include="MuseTcpSession.cs" />
     <Compile Include="NetHelper.cs" />
