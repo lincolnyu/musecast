@@ -8,10 +8,9 @@ namespace MuseCastLib
     {
         public const string SuccessStatusMessage = " 200 OK";
 
-        public MuseBaseSession(Socket socket, string mimeType)
+        public MuseBaseSession(Socket socket)
         {
             Socket = socket;
-            MimeType = mimeType;
         }
 
         #region ISession members
@@ -21,8 +20,6 @@ namespace MuseCastLib
         #endregion
 
         public string ClientHttpVersion { get; set; }
-
-        public string MimeType { get; }
 
         public Socket Socket { get; private set; }
 
@@ -51,20 +48,20 @@ namespace MuseCastLib
 
         #endregion
 
-        protected void SendString(string s)
+        public void SendString(string s, string mime = "text/html")
         {
             var b = Encoding.UTF8.GetBytes(s);
-            SendHeader(b.Length, SuccessStatusMessage);
+            SendHeader(b.Length, mime, SuccessStatusMessage);
             SendToBrowser(b);
         }
 
-        protected void SendHeader(int totalBytes, string statusBytes)
+        protected void SendHeader(int totalBytes, string mime, string statusBytes)
         {
             var sBuffer = "";
 
             sBuffer = sBuffer + ClientHttpVersion + statusBytes + "\r\n";
             sBuffer = sBuffer + "Server: cx1193719-b\r\n";
-            sBuffer = sBuffer + "Content-Type: " + MimeType + "\r\n";
+            sBuffer = sBuffer + "Content-Type: " + mime + "\r\n";
             sBuffer = sBuffer + "Accept-Ranges: bytes\r\n";
             if (totalBytes >= 0)
             {

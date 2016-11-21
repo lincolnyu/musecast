@@ -5,7 +5,7 @@ namespace MuseCastLib
 {
     public class MuseMp3TcpListener : TcpListener, IListener
     {
-        public const string DefaultMimeType = "audio/mp3";
+        public const string DefaultMimeType = "audio/mpeg";
 
         public MuseMp3TcpListener(IPEndPoint localEP, string mimeType = DefaultMimeType) : base(localEP) { MimeType = mimeType; }
         public MuseMp3TcpListener(IPAddress localaddr, int port, string mimeType = DefaultMimeType) : base(localaddr, port) { MimeType = mimeType; }

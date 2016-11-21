@@ -6,9 +6,12 @@ namespace MuseCastLib
 {
     public class MuseTcpSession : MuseBaseSession
     {
-        public MuseTcpSession(Socket socket, string mimeType) : base(socket, mimeType)
+        public MuseTcpSession(Socket socket, string mime) : base(socket)
         {
+            Mime = mime;
         }
+
+        public string Mime { get; }
 
         #region ISession members
 
@@ -46,7 +49,7 @@ namespace MuseCastLib
 
         public override bool SendData(byte[] buf, int offset, int length)
         {
-            SendHeader(length, SuccessStatusMessage);
+            SendHeader(length, Mime, SuccessStatusMessage);
             SendToBrowser(buf, offset, length);
             return true;
         }
