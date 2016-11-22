@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.IO;
 using MuseCastLib;
 using static MuseCast.AudioCapture;
+using System.Threading;
 
 namespace MuseCast
 {
@@ -96,8 +97,12 @@ namespace MuseCast
                 NetHelper.ParseIpAddress(address, out ipAddress, out port);
                 if (port == null) port = DefaultPort;
                 var listener = new MuseMp3TcpListener(ipAddress, port.Value);
-                using (var stream = new MulticastStream(listener))
+
+                var r = new Random();
+                using (var stream = new MulticastStream(listener, 10*1024))
                 {
+#if true
+
                     // how to use lame:
                     // http://stackoverflow.com/questions/23441298/how-can-i-save-a-music-network-stream-to-a-mp3-file
                     RecordAudioStream((WAVEFORMATEX pwfx) =>
@@ -120,9 +125,46 @@ namespace MuseCast
                         byte[] convertedData;
                         ConvertTo16bps(data, out convertedData, inbps);
 
+                        for (var j = 0; j < convertedData.Length; j++)
+                        {
+                            convertedData[j] = (byte)r.Next(256);
+                        }
+
                         writer.Write(convertedData, 0, convertedData.Length);
+
                         return 0;
                     });
+#else
+                    while (true)
+                    {
+                        var bufc = 0;
+                        using (var inputmp3 = new FileStream(@"d:\temp\mopc15.mp3", FileMode.Open))
+                        {
+                            const int buflen = 10 * 1024;
+                            var b = new byte[buflen];
+                            while (true)
+                            {
+                                var read = inputmp3.Read(b, 0, buflen);
+                                if (read > 0)
+                                {
+                                    stream.Write(b, 0, read);
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                                if(bufc > 0)
+                                {
+                                    bufc--;
+                                }
+                                else
+                                {
+                                    Thread.Sleep(1000);
+                                }
+                            }
+                        }
+                    }
+#endif
                 }
             }
             catch (Exception e)

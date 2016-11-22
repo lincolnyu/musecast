@@ -28,16 +28,22 @@ namespace MuseCastLib
         ReaderWriterLock[] _bufferLocks;
         int _currentWriting = 0;
 
+        MinLenBuffer _inputBuffer;
+
         private readonly IListener _listener;
         private int _numRunningThreads;
         private readonly AutoResetEvent _doneEvent = new AutoResetEvent(false);
         private readonly AutoResetEvent _writtenEvent = new AutoResetEvent(false);
         private bool _terminating = false;
 
-        public MulticastStream(IListener listener, int audioBufferFrameCount = DefaultAudioBufferFrameCount)
+        public MulticastStream(IListener listener, int inputBufLen = 0, int audioBufferFrameCount = DefaultAudioBufferFrameCount)
         {
             try
             {
+                if (inputBufLen > 0)
+                {
+                    _inputBuffer = new MinLenBuffer(inputBufLen);
+                }
                 _audioBuffers = new byte[audioBufferFrameCount][];
                 _bufferLocks = new ReaderWriterLock[audioBufferFrameCount];
                 for (var i = 0; i < _bufferLocks.Length; i++)
@@ -128,6 +134,21 @@ namespace MuseCastLib
 
         public override void Write(byte[] buffer, int offset, int count)
         {
+            if (_inputBuffer != null)
+            {
+                _inputBuffer.Write(buffer, offset, count);
+                if (_inputBuffer.BufferReady)
+                {
+                    buffer = _inputBuffer.PopBuffer();
+                    offset = 0;
+                    count = buffer.Length;
+                }
+                else
+                {
+                    return;
+                }
+            }
+
             _bufferLocks[_currentWriting].AcquireWriterLock(-1);
             // TODO optimize
             var buf = _audioBuffers[_currentWriting] = new byte[count];
