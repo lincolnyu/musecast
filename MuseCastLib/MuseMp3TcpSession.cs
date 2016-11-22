@@ -8,7 +8,7 @@ namespace MuseCastLib
     {
         public const int LongLength = 1024 * 1024 * 1024;
 
-        public bool notsend = false;
+        private bool _sendHead = true;
 
         public MuseMp3TcpSession(Socket socket, string mime = "audio/mpeg") : base(socket)
         {
@@ -20,7 +20,7 @@ namespace MuseCastLib
         public override bool Handshake()
         {
             if (!ProcessInitRequest()) return false;
-            SendHeader(LongLength, Mime, SuccessStatusMessage);
+            _sendHead = true;
             return true;
         }
         
@@ -30,6 +30,11 @@ namespace MuseCastLib
 
         public override bool SendData(byte[] buf, int offset, int length)
         {
+            if (_sendHead)
+            {
+                SendHeader(LongLength, Mime, SuccessStatusMessage);
+                _sendHead = false;
+            }
             SendToBrowser(buf, offset, length);
             return true;
         }

@@ -99,7 +99,7 @@ namespace MuseCast
                 var listener = new MuseMp3TcpListener(ipAddress, port.Value);
 
                 var r = new Random();
-                using (var stream = new MulticastStream(listener, 10*1024))
+                using (var stream = new MulticastStream(listener, 1024))
                 {
 #if true
 

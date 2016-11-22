@@ -24,6 +24,8 @@ namespace MuseCastLib
 
         #endregion
 
+        int AudioBufferFrameCount => _audioBuffers.Length;
+
         byte[][] _audioBuffers;
         ReaderWriterLock[] _bufferLocks;
         int _currentWriting = 0;
@@ -249,7 +251,7 @@ namespace MuseCastLib
             }
 
             var inited = false;
-            int currentReading = 0;
+            int currentReading = (_currentWriting + AudioBufferFrameCount / 4) % AudioBufferFrameCount;
             var error = false;
             while (!_terminating && !error)
             {
@@ -291,7 +293,10 @@ namespace MuseCastLib
                 {
                     buf = _audioBuffers[currentReading];
                 }
-                error = !session.SendData(buf, 0, buf.Length);
+                if (buf != null && buf.Length > 0)
+                {
+                    error = !session.SendData(buf, 0, buf.Length);
+                }
                 _bufferLocks[currentReading].ReleaseReaderLock();
                 currentReading = (currentReading + 1) % _bufferLocks.Length;
             }
