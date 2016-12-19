@@ -52,6 +52,16 @@
     <Compile Include="NetHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\qsharp\QSharp\QSharp.Scheme.Buffering\QSharp.Scheme.Buffering.csproj">
+      <Project>{08bb66d5-f6a6-4698-90a8-9649ef54aaa5}</Project>
+      <Name>QSharp.Scheme.Buffering</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\qsharp\QSharp\QSharp.Scheme.Threading\QSharp.Scheme.Threading.csproj">
+      <Project>{86C94EB4-AFA0-41E8-9771-93B615DCD28E}</Project>
+      <Name>QSharp.Scheme.Threading</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

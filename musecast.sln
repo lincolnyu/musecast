@@ -19,6 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DashCast", "DashCast\DashCa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MuseCastLib", "MuseCastLib\MuseCastLib.csproj", "{FAB1647D-8034-4B96-8751-C76848D84546}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharp.Scheme.Buffering", "..\..\qsharp\QSharp\QSharp.Scheme.Buffering\QSharp.Scheme.Buffering.csproj", "{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharp.Scheme.Threading", "..\..\qsharp\QSharp\QSharp.Scheme.Threading\QSharp.Scheme.Threading.csproj", "{86C94EB4-AFA0-41E8-9771-93B615DCD28E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -81,6 +85,22 @@ Global
 		{FAB1647D-8034-4B96-8751-C76848D84546}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FAB1647D-8034-4B96-8751-C76848D84546}.Release|x64.ActiveCfg = Release|Any CPU
 		{FAB1647D-8034-4B96-8751-C76848D84546}.Release|x64.Build.0 = Release|Any CPU
+		{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}.Debug|x64.Build.0 = Debug|Any CPU
+		{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}.Release|x64.ActiveCfg = Release|Any CPU
+		{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}.Release|x64.Build.0 = Release|Any CPU
+		{86C94EB4-AFA0-41E8-9771-93B615DCD28E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86C94EB4-AFA0-41E8-9771-93B615DCD28E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86C94EB4-AFA0-41E8-9771-93B615DCD28E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{86C94EB4-AFA0-41E8-9771-93B615DCD28E}.Debug|x64.Build.0 = Debug|Any CPU
+		{86C94EB4-AFA0-41E8-9771-93B615DCD28E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86C94EB4-AFA0-41E8-9771-93B615DCD28E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86C94EB4-AFA0-41E8-9771-93B615DCD28E}.Release|x64.ActiveCfg = Release|Any CPU
+		{86C94EB4-AFA0-41E8-9771-93B615DCD28E}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

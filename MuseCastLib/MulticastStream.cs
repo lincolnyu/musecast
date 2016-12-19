@@ -1,4 +1,5 @@
-﻿using System;
+﻿using QSharp.Scheme.Buffering;
+using System;
 using System.IO;
 using System.Threading;
 
@@ -14,7 +15,7 @@ namespace MuseCastLib
 
         #region Constants
 
-        private const int DefaultAudioBufferFrameCount = 32;
+        private const int DefaultHookCount = 32;
       
         #endregion
 
@@ -24,34 +25,21 @@ namespace MuseCastLib
 
         #endregion
 
-        int AudioBufferFrameCount => _audioBuffers.Length;
+        public int AudioBufferFrameCount => _audioBuffer.HookCount;
 
-        byte[][] _audioBuffers;
-        ReaderWriterLock[] _bufferLocks;
-        int _currentWriting = 0;
-
-        MinLenBuffer _inputBuffer;
-
+        private HookyCircularBuffer _audioBuffer;
+       
         private readonly IListener _listener;
         private int _numRunningThreads;
         private readonly AutoResetEvent _doneEvent = new AutoResetEvent(false);
         private readonly AutoResetEvent _writtenEvent = new AutoResetEvent(false);
         private bool _terminating = false;
 
-        public MulticastStream(IListener listener, int inputBufLen = 0, int audioBufferFrameCount = DefaultAudioBufferFrameCount)
+        public MulticastStream(IListener listener, int hookCount = DefaultHookCount)
         {
             try
             {
-                if (inputBufLen > 0)
-                {
-                    _inputBuffer = new MinLenBuffer(inputBufLen);
-                }
-                _audioBuffers = new byte[audioBufferFrameCount][];
-                _bufferLocks = new ReaderWriterLock[audioBufferFrameCount];
-                for (var i = 0; i < _bufferLocks.Length; i++)
-                {
-                    _bufferLocks[i] = new ReaderWriterLock();
-                }
+                _audioBuffer = new HookyCircularBuffer(hookCount);
 
                 //start listing on the given port
                 _listener = listener;
@@ -136,33 +124,14 @@ namespace MuseCastLib
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if (_inputBuffer != null)
-            {
-                _inputBuffer.Write(buffer, offset, count);
-                if (_inputBuffer.BufferReady)
-                {
-                    buffer = _inputBuffer.PopBuffer();
-                    offset = 0;
-                    count = buffer.Length;
-                }
-                else
-                {
-                    return;
-                }
-            }
-
-            _bufferLocks[_currentWriting].AcquireWriterLock(-1);
-            // TODO optimize
-            var buf = _audioBuffers[_currentWriting] = new byte[count];
+            var buf = new byte[count];
             var j = 0;
             for (var i = offset; i < count; i++, j++)
             {
                 buf[j] = buffer[i];
             }
-            _bufferLocks[_currentWriting].ReleaseWriterLock();
-            _currentWriting++;
-            if (_currentWriting >= _bufferLocks.Length) _currentWriting = 0;
-            _length += count;
+            _audioBuffer.Hook(buf);
+            
             _writtenEvent.Set();
         }
 
@@ -251,7 +220,9 @@ namespace MuseCastLib
             }
 
             var inited = false;
-            int currentReading = (_currentWriting + AudioBufferFrameCount / 4) % AudioBufferFrameCount;
+            // TODO consider registered reader, which may block writer?
+            var reader = new HookyCircularBuffer.Reader(_audioBuffer);
+            _audioBuffer.RecommendReader(reader);
             var error = false;
             while (!_terminating && !error)
             {
@@ -276,29 +247,13 @@ namespace MuseCastLib
                     continue;
                 }
 
-                while (currentReading == _currentWriting)
+                var readlen = _audioBuffer.RecommendReadLen(reader);
+                var buf = new byte[readlen];
+                var read = reader.Read(buf, 0, readlen);
+                if (buf != null && read > 0)
                 {
-                    _writtenEvent.WaitOne();
+                    error = !session.SendData(buf, 0, read);
                 }
-
-                _bufferLocks[currentReading].AcquireReaderLock(-1);
-                byte[] buf;
-                if (InitDataCombinedWithFirstChunk && initData != null)
-                {
-                    buf = new byte[initDataLen + _audioBuffers[currentReading].Length];
-                    BufCopy(buf, initData, 0, initDataStart, initDataLen);
-                    BufCopy(buf, _audioBuffers[currentReading], initDataLen);
-                }
-                else
-                {
-                    buf = _audioBuffers[currentReading];
-                }
-                if (buf != null && buf.Length > 0)
-                {
-                    error = !session.SendData(buf, 0, buf.Length);
-                }
-                _bufferLocks[currentReading].ReleaseReaderLock();
-                currentReading = (currentReading + 1) % _bufferLocks.Length;
             }
         }
 
