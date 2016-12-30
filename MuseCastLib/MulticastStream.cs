@@ -247,7 +247,7 @@ namespace MuseCastLib
                     continue;
                 }
 
-                var readlen = _audioBuffer.RecommendReadLen(reader);
+                var readlen = _audioBuffer.RecommendReadLen2(reader);
                 var buf = new byte[readlen];
                 var read = reader.Read(buf, 0, readlen);
                 if (buf != null && read > 0)
