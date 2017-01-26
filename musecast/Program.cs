@@ -125,10 +125,11 @@ namespace MuseCast
                         byte[] convertedData;
                         ConvertTo16bps(data, out convertedData, inbps);
 
+                       /* 
                         for (var j = 0; j < convertedData.Length; j++)
                         {
                             convertedData[j] = (byte)r.Next(256);
-                        }
+                        }*/
 
                         writer.Write(convertedData, 0, convertedData.Length);
 

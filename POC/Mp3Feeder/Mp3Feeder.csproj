@@ -4,15 +4,17 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{FAB1647D-8034-4B96-8751-C76848D84546}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{78162B44-9839-4F74-A4EC-D9B1C87B1A7C}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MuseCastLib</RootNamespace>
-    <AssemblyName>MuseCastLib</AssemblyName>
+    <RootNamespace>Mp3Feeder</RootNamespace>
+    <AssemblyName>Mp3Feeder</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +24,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -40,27 +43,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MinLenBuffer.cs" />
-    <Compile Include="IListener.cs" />
-    <Compile Include="ISession.cs" />
-    <Compile Include="MulticastStream.cs" />
-    <Compile Include="MuseMp3TcpSession.cs" />
-    <Compile Include="MuseMp3TcpListener.cs" />
-    <Compile Include="MuseBaseSession.cs" />
-    <Compile Include="MuseTcpListener.cs" />
-    <Compile Include="MuseTcpSession.cs" />
-    <Compile Include="NetHelper.cs" />
-    <Compile Include="OnDemandStream.cs" />
+    <Compile Include="FeederStream.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\qsharp\QSharp\QSharp.Scheme.Buffering\QSharp.Scheme.Buffering.csproj">
-      <Project>{08bb66d5-f6a6-4698-90a8-9649ef54aaa5}</Project>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\qsharp\QSharp\QSharp.Scheme.Buffering\QSharp.Scheme.Buffering.csproj">
+      <Project>{08BB66D5-F6A6-4698-90A8-9649EF54AAA5}</Project>
       <Name>QSharp.Scheme.Buffering</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\qsharp\QSharp\QSharp.Scheme.Threading\QSharp.Scheme.Threading.csproj">
-      <Project>{86C94EB4-AFA0-41E8-9771-93B615DCD28E}</Project>
-      <Name>QSharp.Scheme.Threading</Name>
+    <ProjectReference Include="..\..\MuseCastLib\MuseCastLib.csproj">
+      <Project>{FAB1647D-8034-4B96-8751-C76848D84546}</Project>
+      <Name>MuseCastLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
